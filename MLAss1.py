@@ -7,6 +7,8 @@ Created on Sat May 30 00:43:40 2020
 """
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from matplotlib import pyplot
+from sklearn.preprocessing import KBinsDiscretizer
 
 #Data Preprocessing
 
@@ -31,32 +33,24 @@ df = df.dropna(axis=1) #There were no null values
 
 # Columns 1 to 57 have continuous real data. 
 
-    # Standardizing the continuous data.
+#Checking for null values.
 
-standardized_df = (df-df.mean())/df.std()
-df.iloc[:,:-1] = standardized_df.iloc[:,:-1]
+df2 = df.any()                 #Obtained false for every column. Hence, there are no null values.
+print(df2)        
 
-    #Checking if there are any values below standard deviation (< -1)
+# Converting continuous values to discrete values. Performing a uniform discretization transform of the dataset
+# uniform discretization transform will preserve the probability distribution of each input 
+#variable but will make it discrete with the specified number of ordinal groups or labels.
 
-df2 = df[df.iloc[:, :-1] < -1]
+print(df.shape)
+df.hist()
+pyplot.show()
 
-    #Checking for non null values.
+trans = KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='uniform')
+df.iloc[:,:-3] = trans.fit_transform(df.iloc[:,:-3])
+print(df)
 
-df2 = df2.any()                 #Obtained false for every column. Hence, there are no non values.
-    
-    #Checking if there are any values above standard deviation (> 1)
-    
-df3 = df[df.iloc[:, :-1] > 1]
-df3 = df3.any()                 #Obtained true for all continuous features.
-    
-    # Converting continuous values to discrete values. Identifying only feature above standard deviation
-        #as positives for the feature and rounding them off
 
-df4 = df.where(df > 1, other = 0)
-
-df4 = df4.where(df4 < 1, other = round(df4))
-
-df.iloc[:,:-1] = df4.iloc[:,:-1]
 
 
 spam_positives = df.iloc[:1812]
@@ -99,14 +93,24 @@ def column(matrix, i):
  the features observed
  '''
 def possible_space_size(data):
+    
     unique_values = []
-    for j in range(len(data[0])):
+    
+    for j in range(len(data[0])-2):
+        unique_values.append([0,1,2,3,4,5,6,7,8,9])
+        
+    for j in range(len(data[0])-2, len(data[0])):
         unique_values.append(list(set(column(data, j))))
 
     hyp_space_size = 1
-    for i in range(len(unique_values)):
-        hyp_space_size = hyp_space_size * (len(unique_values[i])+1)
-        
+    
+    for i in range(len(unique_values)-2):
+        hyp_space_size = hyp_space_size * 10 #Since Continuous data is divided into 10 descrete values through binning
+    
+    for i in range(len(unique_values)-2, len(unique_values)):
+        hyp_space_size = hyp_space_size * len(unique_values[i])
+        print("\nUnique values ",i+1)
+        print(len(unique_values[i]))
     return unique_values, hyp_space_size
 
 '''
@@ -115,13 +119,20 @@ def possible_space_size(data):
  Output: Integer size of hypothesis space
  '''
 def hyp_space_size(data, unique_vals):
+    
     hyp_space_size = 1
-    for i in range(len(data)):
+
+    for i in range(len(data)-2):
         if data[i] == []:
-           hyp_space_size = hyp_space_size * (len(unique_vals[i])+1)
+           hyp_space_size = hyp_space_size * 10
         else:
-            hyp_space_size = hyp_space_size * (len(data[i])+1)
-        
+            hyp_space_size = hyp_space_size * (len(data[i]))
+
+    for i in range(len(data)-2, len(data)):
+            if data[i] == []:
+               hyp_space_size = hyp_space_size * (len(unique_vals[i]))
+            else:
+                hyp_space_size = hyp_space_size * (len(data[i]))
     return hyp_space_size
 
 #Since training is only done on positive cases in Concept learning
@@ -246,6 +257,11 @@ print(hypothesis_space1)
 hyp_size2 = hyp_space_size(hypothesis_space1, unique_values)
 print(hyp_size2)
 
+#Testing on test data
+result = test(x_test, hypothesis_space1)
+accuracy = find_accuracy(y_test, result)
+print(accuracy)
+
 #Testing on all positives
 result = test(positivesX_test, hypothesis_space1)
 accuracy = find_accuracy(positivesY_test, result)
@@ -265,6 +281,11 @@ print(hypothesis_space2)
 hyp_size2 = hyp_space_size(hypothesis_space2, unique_values)
 print(hyp_size2)
 
+#Testing on test data
+result = test(x_test, hypothesis_space2)
+accuracy = find_accuracy(y_test, result)
+print(accuracy)
+
 #Testing on all positives
 result = test(positivesX_test, hypothesis_space2)
 accuracy = find_accuracy(positivesY_test, result)
@@ -283,6 +304,11 @@ hypothesis_space3 = LGG_Set(positivesX_test,2)
 print(hypothesis_space3)
 hyp_size2 = hyp_space_size(hypothesis_space3, unique_values)
 print(hyp_size2)
+
+#Testing on test data
+result = test(x_test, hypothesis_space3)
+accuracy = find_accuracy(y_test, result)
+print(accuracy)
 
 #Testing on all positives
 result = test(positivesX_test, hypothesis_space3)
@@ -304,6 +330,11 @@ hypothesis_space4 = LGG_Set(positivesX_test,3)
 print(hypothesis_space2)
 hyp_size2 = hyp_space_size(hypothesis_space4, unique_values)
 print(hyp_size2)
+
+#Testing on test data
+result = test(x_test, hypothesis_space4)
+accuracy = find_accuracy(y_test, result)
+print(accuracy)
 
 #Testing on all positives
 result = test(positivesX_test, hypothesis_space4)
